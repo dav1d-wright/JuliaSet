@@ -201,3 +201,33 @@ class JuliaCanvas extends Canvas
 	}
 }
 
+class Complex
+{
+	private double m_dRe;
+	private double m_dIm;
+	
+	public Complex()
+	{
+		m_dRe = 0;
+		m_dIm = 0;
+	}
+	
+	public Complex(double aRe, double aIm)
+	{
+		m_dRe = aRe;
+		m_dIm = aIm;
+	}
+	
+	public Complex(Complex aComplex)
+	{
+		m_dRe = aComplex.m_dRe;
+		m_dIm = aComplex.m_dIm;
+	}
+	
+	public double getAbs()
+	{
+		return 0;
+	}
+}
+
+
