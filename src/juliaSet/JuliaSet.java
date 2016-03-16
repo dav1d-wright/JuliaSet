@@ -16,6 +16,9 @@ public class JuliaSet extends JFrame implements ActionListener
 	private JLabel m_cLImag;
 	private JLabel m_cLDivergThresh;
 	private String m_cSMsg = "c = ";
+	private String m_cMsgIter = "x = 0, y = 0";
+	private int m_iDivergThresh = 100;
+	private String m_cMsgDivThresh = "Divergence threshold = " + m_iDivergThresh;
 	private JuliaCanvas m_cCanvas;
 	private int m_iPlotWidth; // number of cells
 	private int m_iPlotHeight; // number of cells
@@ -25,11 +28,12 @@ public class JuliaSet extends JFrame implements ActionListener
 	private Complex m_cCoordPlane[][];
 	private double m_dAbsSqValues[][];
 	private int m_iIterations[][];
-	private int m_iDivergThresh = 100;
 	private Complex m_cSummand;
+	private BufferedImage m_cBackGroundImage = null;
+
 	
-	private static final int PLOTMAX = 2; // we'll have symmetric axes ((0,0) at the centre of the plot
-	private static final int MAXITER = 200;
+	private static final int PLOTMAX = 1; // we'll have symmetric axes ((0,0) at the centre of the plot
+	private static final int MAXITER = 256;
 	
 	JuliaSet (String aTitle, int aFrameWidth, int aFrameHeight, int aPlotWidth, int aPlotHeight) 
 	{
@@ -39,6 +43,9 @@ public class JuliaSet extends JFrame implements ActionListener
 		m_iPlotHeight = aPlotHeight;
 		m_bRunning = false;
 		m_cSummand = new Complex(m_dReal, m_dImag);
+		
+		m_cBackGroundImage = new BufferedImage(aFrameWidth, aFrameHeight, BufferedImage.TYPE_INT_RGB);
+
 		
         this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         this.addWindowListener(new WindowAdapter() 
@@ -53,7 +60,7 @@ public class JuliaSet extends JFrame implements ActionListener
         
         GridBagLayout cLayout = new GridBagLayout();
 		GridBagConstraints cConstraints = new GridBagConstraints();		
-		
+
 		this.setLayout(cLayout);
 		m_cCanvas = new JuliaCanvas(m_iPlotWidth, m_iPlotHeight);
 		m_cCanvas.setSize(m_iPlotWidth, m_iPlotHeight);	
@@ -143,10 +150,19 @@ public class JuliaSet extends JFrame implements ActionListener
 	
 	public void paint (Graphics aGraphics)
 	{
-		m_cCanvas.setSize(new Dimension(m_iPlotWidth, m_iPlotHeight));
+		Graphics cScreenGraphics = aGraphics;
+		// render on background image
+		aGraphics = m_cBackGroundImage.getGraphics();
+		
 		this.paintComponents(aGraphics);
 //			aGraphics.drawString("This is in frame window", 10, 400);
+		aGraphics.setColor(Color.BLACK);
 		aGraphics.drawString(m_cSMsg, 10, 450);
+		aGraphics.drawString(m_cMsgIter, 10, 465);
+		aGraphics.drawString(m_cMsgDivThresh, 10, 480);
+		
+		// rendering is done, draw background image to on screen graphics
+		cScreenGraphics.drawImage(m_cBackGroundImage, 0, 0, null);
 	}
 	
 	public void actionPerformed(ActionEvent aActionEvent) 
@@ -156,30 +172,32 @@ public class JuliaSet extends JFrame implements ActionListener
 		if(strCmd.equals("Start")) 
 		{
 			m_cCanvas.init();
-			m_cSMsg = "Seed = " + Double.toString(m_dReal) + "j*" + Double.toString(m_dImag);
+			m_cSMsg = "Seed = " + Double.toString(m_dReal) + " + " + "j*" + Double.toString(m_dImag);
 			this.calcAbsSqValues();
 		}
 		else if (aActionEvent.getSource() == m_cTReal)
 		{
 			m_dReal = Double.parseDouble(m_cTReal.getText());
-			m_cSMsg = "Seed = " + Double.toString(m_dReal) + "j*" + Double.toString(m_dImag);
+			m_cSMsg = "Seed = " + Double.toString(m_dReal) + " + " + "j*" + Double.toString(m_dImag);
 			m_cSummand.setRe(m_dReal);
 		}
 		else if (aActionEvent.getSource() == m_cTImag)
 		{
 			m_dImag = Double.parseDouble(m_cTImag.getText());
-			m_cSMsg = "Seed = " + Double.toString(m_dReal) + "j*" + Double.toString(m_dImag);
+			m_cSMsg = "Seed = " + Double.toString(m_dReal) + " + " + "j*" + Double.toString(m_dImag);
 			m_cSummand.setIm(m_dImag);
 		}
 		else if (aActionEvent.getSource() == m_cTDivergThresh)
 		{
 			m_iDivergThresh = Integer.parseInt(m_cTDivergThresh.getText());
+			m_cMsgDivThresh = "Divergence threshold = " + m_iDivergThresh;
 		}
 		
 		this.update(this.getGraphics());
 	}
 	
-	public void transformCoordinates(){
+	public void transformCoordinates()
+	{
 		double dCanvasHeight = (double)m_cCanvas.getHeight();
 		double dCanvasWidth = (double)m_cCanvas.getWidth();
 		// init matrix with same amount of elements as pixels in canvas
@@ -194,7 +212,8 @@ public class JuliaSet extends JFrame implements ActionListener
 		
 	}
 	
-	public void calcAbsSqValues(){
+	public void calcAbsSqValues()
+	{
 		int iCanvasHeight = m_cCanvas.getHeight();
 		int iCanvasWidth = m_cCanvas.getWidth();
 		// init matrix with same amount of elements as pixels in canvas
@@ -213,9 +232,21 @@ public class JuliaSet extends JFrame implements ActionListener
 					cSum = cSum.add(m_cSummand);
 					m_dAbsSqValues[i][j] = cSum.getAbsSq();
 				}while((m_iIterations[i][j] < MAXITER) && (m_dAbsSqValues[i][j] < m_iDivergThresh));
+				this.calcColour(i, j, m_iIterations[i][j]);
+				m_cMsgIter = "x = " + i + " , y = " + j;
+				this.repaint();
 			}
 		}
-	}	
+		int x = 0;
+	}
+	
+	private void calcColour(int i, int j, int aIterations)
+	{
+		if(aIterations == MAXITER)
+		{
+			m_cCanvas.setPixelColour(i, j, Color.BLACK);
+		}
+	}
 }
 
 class JuliaCanvas extends Canvas 
@@ -224,6 +255,7 @@ class JuliaCanvas extends Canvas
 	private int m_iHeight;
 	private Random m_cRnd;
 	private BufferedImage m_cBackGroundImage = null;
+	private Color m_cPixelColours[][];
 	
 	JuliaCanvas(int aWidth, int aHeight) 
 	{
@@ -234,7 +266,17 @@ class JuliaCanvas extends Canvas
 		m_cRnd.setSeed(m_cRnd.nextLong());
 		
 		m_cBackGroundImage = new BufferedImage(m_iWidth, m_iHeight, BufferedImage.TYPE_INT_RGB);
-
+		
+		m_cPixelColours = new Color[m_iHeight][m_iWidth];
+		
+		for(int i = 0; i < m_iWidth; i++) 
+		{
+			for(int j = 0; j < m_iHeight; j++) 
+			{
+				m_cPixelColours[i][j] = new Color(0xff,0xff,0xff);
+			}
+		}
+		
 	}
 	
 	public void init() 
@@ -242,6 +284,10 @@ class JuliaCanvas extends Canvas
 
 	}
 	
+	public void setPixelColour(int i, int j, Color aColour)
+	{
+		m_cPixelColours[i][j] = new Color(aColour.getRGB());
+	}
 
 	private int getRandomInt(double aProbability) 
 	{
@@ -260,12 +306,12 @@ class JuliaCanvas extends Canvas
 		{
 			for(int j = 0; j < m_iHeight; j++) 
 			{
-//				aGraphics.fillRect(m_cCells[i][j].getPixCoordXBegin(), m_cCells[i][j].getPixCoordYBegin()
-//						, m_iCellWidth, m_iCellWidth);
+				aGraphics.setColor(m_cPixelColours[i][j]);
+				aGraphics.drawRect(i, j, 1, 1);
 			}
 		}
 		// rendering is done, draw background image to on screen graphics
-		cScreenGraphics.drawImage(m_cBackGroundImage, 0, 0, null);
+		cScreenGraphics.drawImage(m_cBackGroundImage, 1, 1, null);
 	}
 	
 	@Override
