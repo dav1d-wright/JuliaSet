@@ -21,6 +21,8 @@ public class JuliaSet extends JFrame implements ActionListener
 	private double m_dReal= -0.8;
 	private double m_dImag= 0.156;
 	private Complex m_cCoordPlane[][];
+	private double m_dAbsSqValues[][];
+	private Complex m_cSummand;
 	
 	private static final int PLOTMAX = 2; // we'll have symmetric axes ((0,0) at the centre of the plot
 	
@@ -31,6 +33,7 @@ public class JuliaSet extends JFrame implements ActionListener
 		m_iPlotWidth = aPlotWidth ;
 		m_iPlotHeight = aPlotHeight;
 		m_bRunning = false;
+		m_cSummand = new Complex(m_dReal, m_dImag);
 		
         this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         this.addWindowListener(new WindowAdapter() 
@@ -45,7 +48,6 @@ public class JuliaSet extends JFrame implements ActionListener
         
         GridBagLayout cLayout = new GridBagLayout();
 		GridBagConstraints cConstraints = new GridBagConstraints();		
-	
 		
 		this.setLayout(cLayout);
 		m_cCanvas = new JuliaCanvas(m_iPlotWidth, m_iPlotHeight);
@@ -139,10 +141,12 @@ public class JuliaSet extends JFrame implements ActionListener
 		else if (aActionEvent.getSource() == m_cTReal)
 		{
 			m_dReal = Double.parseDouble(m_cTReal.getText());
+			m_cSummand.setRe(m_dReal);
 		}
 		else if (aActionEvent.getSource() == m_cTImag)
 		{
 			m_dImag = Double.parseDouble(m_cTImag.getText());
+			m_cSummand.setIm(m_dImag);
 		}
 		
 		this.update(this.getGraphics());
@@ -162,6 +166,21 @@ public class JuliaSet extends JFrame implements ActionListener
 		}
 		
 	}
+	
+	public void calcAbsSqValues(){
+		int iCanvasHeight = m_cCanvas.getHeight();
+		int iCanvasWidth = m_cCanvas.getWidth();
+		// init matrix with same amount of elements as pixels in canvas
+		m_dAbsSqValues = new double[iCanvasHeight][iCanvasWidth];
+		Complex cSum = new Complex();
+		
+		for(int i = 0; i < iCanvasHeight; i++){
+			for(int j = 0; j < iCanvasWidth; j++){
+				cSum = m_cCoordPlane[i][j].add(m_cSummand);
+				m_dAbsSqValues[i][j] = cSum.getAbsSq();
+			}
+		}
+	}	
 }
 
 class JuliaCanvas extends Canvas 
@@ -244,9 +263,34 @@ class Complex
 		m_dIm = aComplex.m_dIm;
 	}
 	
-	public double getAbs()
+	public double getRe()
 	{
-		return 0;
+		return m_dRe;
+	}
+
+	public void setRe(double adRe)
+	{
+		m_dRe = adRe;
+	}
+	
+	public double getIm()
+	{
+		return m_dIm;
+	}
+	
+	public void setIm(double adIm)
+	{
+		m_dRe = adIm;
+	}
+	
+	public Complex add(Complex acComplex)
+	{
+		return new Complex(m_dRe + acComplex.getRe(), m_dIm + acComplex.getIm());
+	}
+	
+	public double getAbsSq()
+	{
+		return ((m_dRe*m_dRe) + (m_dIm*m_dIm));
 	}
 }
 
