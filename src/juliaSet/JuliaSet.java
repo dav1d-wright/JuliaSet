@@ -14,12 +14,15 @@ public class JuliaSet extends JFrame implements ActionListener
 	private JLabel m_cLReal;
 	private JLabel m_cLImag;
 	private String m_cSMsg = "c = ";
-	private JuliaCanvas cCanvas;
+	private JuliaCanvas m_cCanvas;
 	private int m_iPlotWidth; // number of cells
 	private int m_iPlotHeight; // number of cells
 	private Boolean m_bRunning;
 	private double m_dReal= -0.8;
 	private double m_dImag= 0.156;
+	private Complex m_cCoordPlane[][];
+	
+	private static final int PLOTMAX = 2; // we'll have symmetric axes ((0,0) at the centre of the plot
 	
 	JuliaSet (String aTitle, int aFrameWidth, int aFrameHeight, int aPlotWidth, int aPlotHeight) 
 	{
@@ -45,8 +48,8 @@ public class JuliaSet extends JFrame implements ActionListener
 	
 		
 		this.setLayout(cLayout);
-		cCanvas = new JuliaCanvas(m_iPlotWidth, m_iPlotHeight);
-		cCanvas.setSize(m_iPlotWidth, m_iPlotHeight);	
+		m_cCanvas = new JuliaCanvas(m_iPlotWidth, m_iPlotHeight);
+		m_cCanvas.setSize(m_iPlotWidth, m_iPlotHeight);	
 		
 		m_cBStart = new JButton("Start");
 		m_cBStart.addActionListener(this);
@@ -65,8 +68,8 @@ public class JuliaSet extends JFrame implements ActionListener
 		// cCanvas
 		cConstraints.gridx = 0;
 		cConstraints.gridy = 0;
-		cLayout.setConstraints(cCanvas, cConstraints);
-		this.add(cCanvas);
+		cLayout.setConstraints(m_cCanvas, cConstraints);
+		this.add(m_cCanvas);
 
 		// m_cLReal
 		cConstraints.gridx = 0;
@@ -99,6 +102,8 @@ public class JuliaSet extends JFrame implements ActionListener
 		this.add(m_cBStart);
 		
 		this.repaint();
+		
+		this.transformCoordinates();
 	}
 	
 	public synchronized void stop() 
@@ -116,7 +121,7 @@ public class JuliaSet extends JFrame implements ActionListener
 	
 	public void paint (Graphics aGraphics)
 	{
-		cCanvas.setSize(new Dimension(m_iPlotWidth, m_iPlotHeight));
+		m_cCanvas.setSize(new Dimension(m_iPlotWidth, m_iPlotHeight));
 		this.paintComponents(aGraphics);
 //			aGraphics.drawString("This is in frame window", 10, 400);
 		aGraphics.drawString(m_cSMsg, 10, 450);
@@ -128,7 +133,7 @@ public class JuliaSet extends JFrame implements ActionListener
 		
 		if(strCmd.equals("Start")) 
 		{
-			cCanvas.init();
+			m_cCanvas.init();
 			m_cSMsg = "Seed = " + Double.toString(m_dReal) + "j*" + Double.toString(m_dImag);
 		}
 		else if (aActionEvent.getSource() == m_cTReal)
@@ -141,6 +146,21 @@ public class JuliaSet extends JFrame implements ActionListener
 		}
 		
 		this.update(this.getGraphics());
+	}
+	
+	public void transformCoordinates(){
+		double dCanvasHeight = (double)m_cCanvas.getHeight();
+		double dCanvasWidth = (double)m_cCanvas.getWidth();
+		// init matrix with same amount of elements as pixels in canvas
+		m_cCoordPlane = new Complex[(int)dCanvasHeight][(int)dCanvasWidth];
+		int iPlotRange = 2*PLOTMAX;
+		
+		for(int i = 0; i < dCanvasHeight; i++){
+			for(int j = 0; j < dCanvasWidth; j++){
+				m_cCoordPlane[i][j] = new Complex((j / iPlotRange) - PLOTMAX, -((i / iPlotRange) - PLOTMAX));
+			}
+		}
+		
 	}
 }
 
