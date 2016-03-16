@@ -17,7 +17,7 @@ public class JuliaSet extends JFrame implements ActionListener
 	private JLabel m_cLDivergThresh;
 	private String m_cSMsg = "c = ";
 	private String m_cMsgIter = "x = 0, y = 0";
-	private int m_iDivergThresh = 100;
+	private int m_iDivergThresh = 20;
 	private String m_cMsgDivThresh = "Divergence threshold = " + m_iDivergThresh;
 	private JuliaCanvas m_cCanvas;
 	private int m_iPlotWidth; // number of cells
@@ -32,8 +32,8 @@ public class JuliaSet extends JFrame implements ActionListener
 	private BufferedImage m_cBackGroundImage = null;
 
 	
-	private static final int PLOTMAX = 1; // we'll have symmetric axes ((0,0) at the centre of the plot
-	private static final int MAXITER = 256;
+	private static final double PLOTMAX = 2.5; // we'll have symmetric axes ((0,0) at the centre of the plot
+	private static final int MAXITER = 1024;
 	
 	JuliaSet (String aTitle, int aFrameWidth, int aFrameHeight, int aPlotWidth, int aPlotHeight) 
 	{
@@ -202,11 +202,13 @@ public class JuliaSet extends JFrame implements ActionListener
 		double dCanvasWidth = (double)m_cCanvas.getWidth();
 		// init matrix with same amount of elements as pixels in canvas
 		m_cCoordPlane = new Complex[(int)dCanvasHeight][(int)dCanvasWidth];
-		int iPlotRange = 2*PLOTMAX;
+		double iPlotRange = 2*PLOTMAX;
+		
 		
 		for(int i = 0; i < dCanvasHeight; i++){
 			for(int j = 0; j < dCanvasWidth; j++){
-				m_cCoordPlane[i][j] = new Complex((j / iPlotRange) - PLOTMAX, -((i / iPlotRange) - PLOTMAX));
+				
+				m_cCoordPlane[i][j] = new Complex((i - (dCanvasWidth/2))*iPlotRange/dCanvasWidth, (j - (dCanvasHeight/2))*iPlotRange/dCanvasHeight);
 			}
 		}
 		
@@ -234,7 +236,7 @@ public class JuliaSet extends JFrame implements ActionListener
 				}while((m_iIterations[i][j] < MAXITER) && (m_dAbsSqValues[i][j] < m_iDivergThresh));
 				this.calcColour(i, j, m_iIterations[i][j]);
 				m_cMsgIter = "x = " + i + " , y = " + j;
-				this.repaint();
+				m_cCanvas.repaint();
 			}
 		}
 		int x = 0;
@@ -242,10 +244,7 @@ public class JuliaSet extends JFrame implements ActionListener
 	
 	private void calcColour(int i, int j, int aIterations)
 	{
-		if(aIterations == MAXITER)
-		{
-			m_cCanvas.setPixelColour(i, j, Color.BLACK);
-		}
+		m_cCanvas.setPixelColour(i, j, new Color(aIterations * 255/MAXITER, aIterations * 255/MAXITER, aIterations  * 255/MAXITER));
 	}
 }
 
@@ -256,7 +255,8 @@ class JuliaCanvas extends Canvas
 	private Random m_cRnd;
 	private BufferedImage m_cBackGroundImage = null;
 	private Color m_cPixelColours[][];
-	
+
+
 	JuliaCanvas(int aWidth, int aHeight) 
 	{
 		m_iWidth = aWidth;
@@ -268,12 +268,12 @@ class JuliaCanvas extends Canvas
 		m_cBackGroundImage = new BufferedImage(m_iWidth, m_iHeight, BufferedImage.TYPE_INT_RGB);
 		
 		m_cPixelColours = new Color[m_iHeight][m_iWidth];
-		
+	
 		for(int i = 0; i < m_iWidth; i++) 
 		{
 			for(int j = 0; j < m_iHeight; j++) 
 			{
-				m_cPixelColours[i][j] = new Color(0xff,0xff,0xff);
+				m_cPixelColours[i][j] = new Color(0xff, 0xff, 0xff);
 			}
 		}
 		
@@ -286,7 +286,7 @@ class JuliaCanvas extends Canvas
 	
 	public void setPixelColour(int i, int j, Color aColour)
 	{
-		m_cPixelColours[i][j] = new Color(aColour.getRGB());
+		m_cPixelColours[i][j] = aColour;
 	}
 
 	private int getRandomInt(double aProbability) 
@@ -307,7 +307,7 @@ class JuliaCanvas extends Canvas
 			for(int j = 0; j < m_iHeight; j++) 
 			{
 				aGraphics.setColor(m_cPixelColours[i][j]);
-				aGraphics.drawRect(i, j, 1, 1);
+				aGraphics.drawRect(i, j, 0, 0);
 			}
 		}
 		// rendering is done, draw background image to on screen graphics
@@ -361,7 +361,7 @@ class Complex
 	
 	public void setIm(double adIm)
 	{
-		m_dRe = adIm;
+		m_dIm = adIm;
 	}
 	
 	public Complex add(Complex acComplex)
