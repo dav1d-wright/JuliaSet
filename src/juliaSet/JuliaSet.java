@@ -11,8 +11,10 @@ public class JuliaSet extends JFrame implements ActionListener
 	private JButton m_cBStart;
 	private JTextField m_cTReal;
 	private JTextField m_cTImag;
+	private JTextField m_cTDivergThresh;
 	private JLabel m_cLReal;
 	private JLabel m_cLImag;
+	private JLabel m_cLDivergThresh;
 	private String m_cSMsg = "c = ";
 	private JuliaCanvas m_cCanvas;
 	private int m_iPlotWidth; // number of cells
@@ -22,9 +24,12 @@ public class JuliaSet extends JFrame implements ActionListener
 	private double m_dImag= 0.156;
 	private Complex m_cCoordPlane[][];
 	private double m_dAbsSqValues[][];
+	private int m_iIterations[][];
+	private int m_iDivergThresh = 100;
 	private Complex m_cSummand;
 	
 	private static final int PLOTMAX = 2; // we'll have symmetric axes ((0,0) at the centre of the plot
+	private static final int MAXITER = 200;
 	
 	JuliaSet (String aTitle, int aFrameWidth, int aFrameHeight, int aPlotWidth, int aPlotHeight) 
 	{
@@ -59,8 +64,11 @@ public class JuliaSet extends JFrame implements ActionListener
 		m_cTReal.addActionListener(this);
 		m_cTImag = new JTextField(5);
 		m_cTImag.addActionListener(this);
+		m_cTDivergThresh = new JTextField(5);
+		m_cTDivergThresh.addActionListener(this);
 		m_cLReal = new JLabel("Re(c):");
 		m_cLImag = new JLabel("Im(c):");
+		m_cLDivergThresh = new JLabel("Divergence Threshold:");
 		
 		cConstraints.insets.top = 3;
 		cConstraints.insets.bottom = 3;
@@ -97,9 +105,21 @@ public class JuliaSet extends JFrame implements ActionListener
 		cLayout.setConstraints(m_cTImag, cConstraints);
 		this.add(m_cTImag);
 		
-		// m_cBStart
+		// m_cLDivergThresh
 		cConstraints.gridx = 0;
 		cConstraints.gridy = 3;
+		cLayout.setConstraints(m_cLDivergThresh, cConstraints);
+		this.add(m_cLDivergThresh);
+		
+		// m_cTDivergThresh
+		cConstraints.gridx = 1;
+		cConstraints.gridy = 3;
+		cLayout.setConstraints(m_cTDivergThresh, cConstraints);
+		this.add(m_cTDivergThresh);
+		
+		// m_cBStart
+		cConstraints.gridx = 0;
+		cConstraints.gridy = 4;
 		cLayout.setConstraints(m_cBStart, cConstraints);
 		this.add(m_cBStart);
 		
@@ -137,16 +157,23 @@ public class JuliaSet extends JFrame implements ActionListener
 		{
 			m_cCanvas.init();
 			m_cSMsg = "Seed = " + Double.toString(m_dReal) + "j*" + Double.toString(m_dImag);
+			this.calcAbsSqValues();
 		}
 		else if (aActionEvent.getSource() == m_cTReal)
 		{
 			m_dReal = Double.parseDouble(m_cTReal.getText());
+			m_cSMsg = "Seed = " + Double.toString(m_dReal) + "j*" + Double.toString(m_dImag);
 			m_cSummand.setRe(m_dReal);
 		}
 		else if (aActionEvent.getSource() == m_cTImag)
 		{
 			m_dImag = Double.parseDouble(m_cTImag.getText());
+			m_cSMsg = "Seed = " + Double.toString(m_dReal) + "j*" + Double.toString(m_dImag);
 			m_cSummand.setIm(m_dImag);
+		}
+		else if (aActionEvent.getSource() == m_cTDivergThresh)
+		{
+			m_iDivergThresh = Integer.parseInt(m_cTDivergThresh.getText());
 		}
 		
 		this.update(this.getGraphics());
@@ -172,12 +199,20 @@ public class JuliaSet extends JFrame implements ActionListener
 		int iCanvasWidth = m_cCanvas.getWidth();
 		// init matrix with same amount of elements as pixels in canvas
 		m_dAbsSqValues = new double[iCanvasHeight][iCanvasWidth];
+		m_iIterations = new int[iCanvasHeight][iCanvasWidth];
 		Complex cSum = new Complex();
 		
 		for(int i = 0; i < iCanvasHeight; i++){
 			for(int j = 0; j < iCanvasWidth; j++){
-				cSum = m_cCoordPlane[i][j].add(m_cSummand);
-				m_dAbsSqValues[i][j] = cSum.getAbsSq();
+				cSum.setRe(m_cCoordPlane[i][j].getRe());
+				cSum.setIm(m_cCoordPlane[i][j].getIm());
+				m_iIterations[i][j] = 0;
+				do{
+					m_iIterations[i][j]++;
+					cSum = cSum.square();
+					cSum = cSum.add(m_cSummand);
+					m_dAbsSqValues[i][j] = cSum.getAbsSq();
+				}while((m_iIterations[i][j] < MAXITER) && (m_dAbsSqValues[i][j] < m_iDivergThresh));
 			}
 		}
 	}	
@@ -221,14 +256,14 @@ class JuliaCanvas extends Canvas
 		// render on background image
 		aGraphics = m_cBackGroundImage.getGraphics();
 		
-//		for(int i = 0; i < m_iWidth; i++) 
-//		{
-//			for(int j = 0; j < m_iHeight; j++) 
-//			{
+		for(int i = 0; i < m_iWidth; i++) 
+		{
+			for(int j = 0; j < m_iHeight; j++) 
+			{
 //				aGraphics.fillRect(m_cCells[i][j].getPixCoordXBegin(), m_cCells[i][j].getPixCoordYBegin()
 //						, m_iCellWidth, m_iCellWidth);
-//			}
-//		}
+			}
+		}
 		// rendering is done, draw background image to on screen graphics
 		cScreenGraphics.drawImage(m_cBackGroundImage, 0, 0, null);
 	}
@@ -286,6 +321,11 @@ class Complex
 	public Complex add(Complex acComplex)
 	{
 		return new Complex(m_dRe + acComplex.getRe(), m_dIm + acComplex.getIm());
+	}
+	
+	public Complex square()
+	{
+		return new Complex((m_dRe*m_dRe) - (m_dIm*m_dIm), m_dRe*m_dIm);
 	}
 	
 	public double getAbsSq()
