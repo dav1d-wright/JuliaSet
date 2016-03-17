@@ -162,7 +162,7 @@ public class JuliaSet extends JFrame implements ActionListener {
 			}
 		}
 	}
-	public static void collectGarbage() 
+	public void collectGarbage() 
 	{
 	    Object cObj = new Object();
 	    WeakReference ref = new WeakReference<Object>(cObj);
@@ -273,9 +273,6 @@ public class JuliaSet extends JFrame implements ActionListener {
 					System.out.flush();
 				 }
 
-				this.repaint();
-				m_cCanvas.repaint();
-
 				if (m_bWriteLog) {
 					try {
 						m_cBufferedWriter.write(Integer.toString(m_iIterations[i][j]));
@@ -325,6 +322,8 @@ public class JuliaSet extends JFrame implements ActionListener {
 		}
 		cSummand = null;
 		this.collectGarbage();
+		System.gc();
+		System.runFinalization();
 	}
 	public boolean isRunning() {
 		return m_bRunning;
@@ -395,7 +394,6 @@ class JuliaCanvas extends Canvas {
 		}
 		// rendering is done, draw background image to on screen graphics
 		cScreenGraphics.drawImage(m_cBackGroundImage, 1, 1, null);
-		aGraphics.clearRect(0, 0, m_iWidth, m_iHeight);
 	}
 
 	@Override
