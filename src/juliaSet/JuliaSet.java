@@ -8,7 +8,8 @@ import java.util.Random;
 import java.io.*;
 import java.lang.ref.*;
 
-public class JuliaSet extends JFrame implements ActionListener {
+public class JuliaSet extends JFrame implements Runnable, ActionListener 
+{
 	private JButton m_cBStart;
 	private JTextField m_cTReal;
 	private JTextField m_cTImag;
@@ -16,7 +17,7 @@ public class JuliaSet extends JFrame implements ActionListener {
 	private JLabel m_cLReal;
 	private JLabel m_cLImag;
 	private JLabel m_cLDivergThresh;
-	private int m_iDivergThresh = 0xfffffff;
+	private int m_iDivergThresh = 10;
 	private String m_cMsgDivThresh = "Divergence threshold = " + m_iDivergThresh;
 	private JuliaCanvas m_cCanvas;
 	private int m_iPlotWidth; // number of cells
@@ -41,7 +42,8 @@ public class JuliaSet extends JFrame implements ActionListener {
 												// plot
 	private static final int MAXITER = 0xff;
 
-	JuliaSet(String aTitle, int aFrameWidth, int aFrameHeight, int aPlotWidth, int aPlotHeight) {
+	JuliaSet(String aTitle, int aFrameWidth, int aFrameHeight, int aPlotWidth, int aPlotHeight) 
+	{
 		super(aTitle);
 		this.setSize(aFrameWidth, aFrameHeight);
 		m_iPlotWidth = aPlotWidth;
@@ -130,30 +132,30 @@ public class JuliaSet extends JFrame implements ActionListener {
 		cConstraints.gridy = 4;
 		cLayout.setConstraints(m_cBStart, cConstraints);
 		this.add(m_cBStart);
-		if (m_bWriteLog) {
-			try {
+		if (m_bWriteLog) 
+		{
+			try 
+			{
 				m_cFileWriter = new FileWriter(m_sFileName, false);
 				m_cBufferedWriter = new BufferedWriter(m_cFileWriter);
 			} catch (IOException ex) {
 				System.out.println("Error opening file '" + m_sFileName + "'");
 			}
-		}
-
+		}		
 		this.repaint();
-
+//		this.setVisible(true);
 		this.transformCoordinates();
 	}
 
-	public synchronized void stop() {
-		if (m_bRunning) {
+	public synchronized void stop() 
+	{
+		if (m_bRunning) 
+		{
 			m_bRunning = false;
 			boolean bRetry = true;
-			// while (bRetry)
-			// {
-			// // TODO implement rest of stop from stackexchange answer
-			// }
 		}
-		if (m_bWriteLog) {
+		if (m_bWriteLog) 
+		{
 			try {
 				m_cBufferedWriter.close();
 				m_cFileWriter.close();
@@ -172,7 +174,8 @@ public class JuliaSet extends JFrame implements ActionListener {
 	    }
 	}
 	   
-	public void setSummand(Complex aSummand) {
+	public void setSummand(Complex aSummand) 
+	{
 		m_cSummand.setIm(aSummand.getIm());
 		m_dImag = aSummand.getIm();
 		m_cSummand.setRe(aSummand.getRe());
@@ -180,7 +183,8 @@ public class JuliaSet extends JFrame implements ActionListener {
 		m_cSMsg = "c = " + Double.toString(m_dReal) + " + " + "j*" + Double.toString(m_dImag);
 	}
 
-	public void paint(Graphics aGraphics) {
+	public void paint(Graphics aGraphics) 
+	{
 		Graphics cScreenGraphics = aGraphics;
 		// render on background image
 		aGraphics = m_cBackGroundImage.getGraphics();
@@ -196,22 +200,31 @@ public class JuliaSet extends JFrame implements ActionListener {
 		cScreenGraphics.drawImage(m_cBackGroundImage, 0, 0, null);
 	}
 
-	public void actionPerformed(ActionEvent aActionEvent) {
+	public void actionPerformed(ActionEvent aActionEvent) 
+	{
 		String strCmd = aActionEvent.getActionCommand();
 
-		if (strCmd.equals("Start")) {
+		if (strCmd.equals("Start")) 
+		{
 			m_cCanvas.init();
 			m_cSMsg = "c = " + Double.toString(m_dReal) + " + " + "j*" + Double.toString(m_dImag);
-			this.handleCalculation();
-		} else if (aActionEvent.getSource() == m_cTReal) {
+			m_bRunning = true;
+			this.run();
+		} 
+		else if (aActionEvent.getSource() == m_cTReal) 
+		{
 			m_dReal = Double.parseDouble(m_cTReal.getText());
 			m_cSMsg = "c = " + Double.toString(m_dReal) + " + " + "j*" + Double.toString(m_dImag);
 			m_cSummand.setRe(m_dReal);
-		} else if (aActionEvent.getSource() == m_cTImag) {
+		} 
+		else if (aActionEvent.getSource() == m_cTImag) 
+		{
 			m_dImag = Double.parseDouble(m_cTImag.getText());
 			m_cSMsg = "c = " + Double.toString(m_dReal) + " + " + "j*" + Double.toString(m_dImag);
 			m_cSummand.setIm(m_dImag);
-		} else if (aActionEvent.getSource() == m_cTDivergThresh) {
+		} 
+		else if (aActionEvent.getSource() == m_cTDivergThresh) 
+		{
 			m_iDivergThresh = Integer.parseInt(m_cTDivergThresh.getText());
 			m_cMsgDivThresh = "Divergence threshold = " + m_iDivergThresh;
 		}
@@ -219,15 +232,18 @@ public class JuliaSet extends JFrame implements ActionListener {
 		this.update(this.getGraphics());
 	}
 
-	public void transformCoordinates() {
+	public void transformCoordinates() 
+	{
 		double dCanvasHeight = (double) m_cCanvas.getHeight();
 		double dCanvasWidth = (double) m_cCanvas.getWidth();
 		// init matrix with same amount of elements as pixels in canvas
 		m_cCoordPlane = new Complex[(int) dCanvasHeight][(int) dCanvasWidth];
 		double iPlotRange = 2 * PLOTMAX;
 
-		for (int i = 0; i < dCanvasHeight; i++) {
-			for (int j = 0; j < dCanvasWidth; j++) {
+		for (int i = 0; i < dCanvasHeight; i++) 
+		{
+			for (int j = 0; j < dCanvasWidth; j++) 
+			{
 
 				m_cCoordPlane[i][j] = new Complex((i - (dCanvasWidth / 2)) * iPlotRange / dCanvasWidth,
 						(j - (dCanvasHeight / 2)) * iPlotRange / dCanvasHeight);
@@ -236,7 +252,8 @@ public class JuliaSet extends JFrame implements ActionListener {
 
 	}
 
-	public void calcAbsSqValues() {
+	public void calcAbsSqValues() 
+	{
 		int iCanvasHeight = m_cCanvas.getHeight();
 		int iCanvasWidth = m_cCanvas.getWidth();
 		// init matrix with same amount of elements as pixels in canvas
@@ -245,20 +262,26 @@ public class JuliaSet extends JFrame implements ActionListener {
 		Complex cSum = new Complex();
 
 		if (m_bWriteLog) {
-			try {
+			try 
+			{
 				m_cBufferedWriter.write("m_iIterations[][] =");
 				m_cBufferedWriter.newLine();
-			} catch (IOException ex) {
+			} 
+			catch (IOException ex) 
+			{
 				System.out.println("Error opening file '" + m_sFileName + "'");
 			}
 		}
 
-		for (int i = 0; i < iCanvasHeight; i++) {
-			for (int j = 0; j < iCanvasWidth; j++) {
+		for (int i = 0; i < iCanvasHeight; i++) 
+		{
+			for (int j = 0; j < iCanvasWidth; j++) 
+			{
 				cSum.setRe(m_cCoordPlane[i][j].getRe());
 				cSum.setIm(m_cCoordPlane[i][j].getIm());
 				m_iIterations[i][j] = 0;
-				do {
+				do 
+				{
 					m_iIterations[i][j]++;
 					cSum.square();
 					cSum.add(m_cSummand);
@@ -274,18 +297,22 @@ public class JuliaSet extends JFrame implements ActionListener {
 				 }
 
 				if (m_bWriteLog) {
-					try {
+					try 
+					{
 						m_cBufferedWriter.write(Integer.toString(m_iIterations[i][j]));
 						m_cBufferedWriter.write(" ");
-					} catch (IOException ex) {
+					} 
+					catch (IOException ex) {
 						System.out.println("Error writing to file '" + m_sFileName + "'");
 					}
 				}
 			}
 			if (m_bWriteLog) {
-				try {
+				try 
+				{
 					m_cBufferedWriter.newLine();
-				} catch (IOException ex) {
+				} 
+				catch (IOException ex) {
 					System.out.println("Error writing to file '" + m_sFileName + "'");
 				}
 			}
@@ -295,7 +322,8 @@ public class JuliaSet extends JFrame implements ActionListener {
 		cSum = null;
 	}
 
-	private void calcColour(int i, int j, int aIterations) {
+	private void calcColour(int i, int j, int aIterations) 
+	{
 		Color cColour = Color.getHSBColor((int) Math.pow(aIterations, 4), 0xff,
 				0xff * ((aIterations < MAXITER) ? 1 : 0));
 		m_cCanvas.setPixelColour(i, j, cColour);
@@ -306,18 +334,16 @@ public class JuliaSet extends JFrame implements ActionListener {
 	{
 		Complex cSummand = new Complex();
 		
-		for(int i = -80; i <= 80; i++)
+		for(int i = -800; i <= 800; i++)
 		{
-			for(int j = -80; j <= 80; j++)
+			for(int j = -800; j <= 800; j++)
 			{
-				cSummand.setRe(((double)i)/100.0);
-				cSummand.setIm(((double)j)/100.0);
+				cSummand.setRe(((double)i)/1000.0);
+				cSummand.setIm(((double)j)/1000.0);
 				this.setSummand(cSummand);
 				this.calcAbsSqValues();
 				this.getCanvas().paint(m_cCanvas.getGraphics());
-//				this.update(m_cCanvas.getGraphics());
 				this.paint(this.getGraphics());
-//				this.update(this.getGraphics());
 			}
 		}
 		cSummand = null;
@@ -325,11 +351,14 @@ public class JuliaSet extends JFrame implements ActionListener {
 		System.gc();
 		System.runFinalization();
 	}
-	public boolean isRunning() {
+	
+	public boolean isRunning() 
+	{
 		return m_bRunning;
 	}
 
-	public void setRunning(boolean aRunning) {
+	public void setRunning(boolean aRunning) 
+	{
 		m_bRunning = aRunning;
 	}
 	
@@ -337,9 +366,27 @@ public class JuliaSet extends JFrame implements ActionListener {
 	{
 		return m_cCanvas;
 	}
+	
+	public void run()
+	{
+	    if(m_bRunning)
+	    {
+	    	new Thread()
+	    	{
+            	@Override
+                public void run() 
+            	{
+                    JuliaSet.this.handleCalculation();
+                    JuliaSet.this.setVisible(false);
+                }
+            }.start();
+            
+	    }
+	}
 }
 
-class JuliaCanvas extends Canvas {
+class JuliaCanvas extends Canvas 
+{
 	private int m_iWidth;
 	private int m_iHeight;
 	private Random m_cRnd;
@@ -348,7 +395,8 @@ class JuliaCanvas extends Canvas {
 	private int m_iGreen[][];
 	private int m_iBlue[][];
 
-	JuliaCanvas(int aWidth, int aHeight) {
+	JuliaCanvas(int aWidth, int aHeight) 
+	{
 		m_iWidth = aWidth;
 		m_iHeight = aHeight;
 		m_cRnd = new Random();
@@ -366,26 +414,31 @@ class JuliaCanvas extends Canvas {
 
 	}
 
-	public void setPixelColour(int i, int j, Color aColour) {
+	public void setPixelColour(int i, int j, Color aColour) 
+	{
 		m_iRed[i][j] = aColour.getRed();
 		m_iGreen[i][j] = aColour.getGreen();
 		m_iBlue[i][j] = aColour.getBlue();
 	}
 
-	private int getRandomInt(double aProbability) {
+	private int getRandomInt(double aProbability) 
+	{
 		return (m_cRnd.nextDouble() < aProbability) ? 1 : 0;
 	}
 
 	@Override
-	public void paint(Graphics aGraphics) {
+	public void paint(Graphics aGraphics) 
+	{
 		// store on screen graphics
 		Graphics cScreenGraphics = aGraphics;
 		// render on background image
 		aGraphics = m_cBackGroundImage.getGraphics();
 		
 
-		for (int i = 0; i < m_iWidth; i++) {
-			for (int j = 0; j < m_iHeight; j++) {
+		for (int i = 0; i < m_iWidth; i++) 
+		{
+			for (int j = 0; j < m_iHeight; j++) 
+			{
 				Color cColor = new Color(m_iRed[i][j], m_iGreen[i][j], m_iBlue[i][j]);
 				aGraphics.setColor(cColor);
 				aGraphics.drawRect(i, j, 0, 0);
@@ -397,7 +450,8 @@ class JuliaCanvas extends Canvas {
 	}
 
 	@Override
-	public void update(Graphics aGraphics) {
+	public void update(Graphics aGraphics) 
+	{
 		paint(aGraphics);
 	}
 }
@@ -406,7 +460,8 @@ class Complex {
 	private double m_dRe;
 	private double m_dIm;
 
-	public Complex() {
+	public Complex() 
+	{
 		m_dRe = 0;
 		m_dIm = 0;
 	}
